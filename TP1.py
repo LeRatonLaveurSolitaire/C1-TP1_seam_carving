@@ -155,12 +155,12 @@ def supprimer_ligne(img,Lpixel):
 
 
 def main():
-    path_name = 'plage.jpg'
+    path_name = 'oiseau.jpg'
     image_couleur = cv.imread(path_name)
     n,p,q=image_couleur.shape
     # print(n,p)
     # assert False
-    taille_finale=[150,150]
+    taille_finale=[800,800]
     # Calcul du nombre d'itération
     iteration_ligne=n-taille_finale[0]
     iteration_colonne=p-taille_finale[1]    
@@ -181,7 +181,7 @@ def main():
         for pixel in Ligne[1]:
             image_aff[pixel[0]][pixel[1]]=[0,0,255]
         cv.imshow('image', image_aff)
-        cv.waitKey(50)
+        cv.waitKey(10)
 
 
         # On choisit si on réduit sur les lignes ou les colonnes en prenant l'énergie moyenne par pixel minimale
@@ -197,19 +197,22 @@ def main():
 
         
     # Affichage et enregistrement de l'image finale
-    cv.imwrite("{}_resultat.jpg".format(path_name[:-4]), image_couleur)
+    cv.imwrite("{}_resultat_sans_seg.jpg".format(path_name[:-4]), image_couleur)
     cv.imshow('image', image_couleur)
 
-    cv.waitKey(0)
-    cv.destroyAllWindows()
+    cv.waitKey(1000)
+    # cv.destroyAllWindows()
 
 
 def main2():
-    path_name = 'plage.jpg'
+    path_name = 'oiseau.jpg'
     image_couleur = cv.imread(path_name)
 
-    image_segmenter,couleur=km.K_means_image(image_couleur,4,20)
+    image_segmenter,couleur=km.K_means_image(image_couleur,2,20)
     # le noir (couleur la plus foncé) est la couleur à ne pas modifier
+    cv.imwrite("{}_segmentation.jpg".format(path_name[:-4]), image_segmenter)
+    print(couleur)
+    assert False
     id=0
     valmin=255
     for i in range(4):
@@ -220,7 +223,7 @@ def main2():
     n,p,q=image_couleur.shape
     # print(n,p)
     # assert False
-    taille_finale=[150,150]
+    taille_finale=[800,800]
     # Calcul du nombre d'itération
     iteration_ligne=n-taille_finale[0]
     iteration_colonne=p-taille_finale[1]    
@@ -234,7 +237,7 @@ def main2():
         n,p=image_energie.shape
         for i in range(n):
             for j in range(p):
-                if np.sum(image_segmenter[i][j])== np.sum(couleur[id]):
+                if abs(np.sum(image_segmenter[i][j])-np.sum(couleur[id]))<10:
                     image_energie[i][j]=energie_max
 
         # Calcul du flot minimale sur les lignes et les colonnes
@@ -248,7 +251,7 @@ def main2():
         for pixel in Ligne[1]:
             image_aff[pixel[0]][pixel[1]]=[0,0,255]
         cv.imshow('image', image_aff)
-        cv.waitKey(50)
+        cv.waitKey(10)
 
 
         # On choisit si on réduit sur les lignes ou les colonnes en prenant l'énergie moyenne par pixel minimale
@@ -266,15 +269,16 @@ def main2():
 
         
     # Affichage et enregistrement de l'image finale
-    cv.imwrite("{}_resultat.jpg".format(path_name[:-4]), image_couleur)
+    cv.imwrite("{}_resultat_avec_seg.jpg".format(path_name[:-4]), image_couleur)
     cv.imshow('image', image_couleur)
-
-    cv.waitKey(0)
-    cv.destroyAllWindows()
+    cv.waitKey(1000)
+    # cv.destroyAllWindows()
 
 if __name__ == "__main__":
-    main()
-    # main2()
+    print('Main1')
+    # main()
+    print('Main2')
+    main2()
 
 
 print('fin')
