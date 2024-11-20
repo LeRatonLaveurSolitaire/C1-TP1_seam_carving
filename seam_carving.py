@@ -270,19 +270,10 @@ def seam_carving(path_name='plage.jpg',taille_finale=[150,150],segmentation=Fals
     # cv.destroyAllWindows()
 
 if __name__ == "__main__":
-    # seam_carving('plage.jpg',[150,150],segmentation=False,affichage=True)
-    # seam_carving('plage.jpg',[150,150],segmentation=True,affichage=True)
+    seam_carving('plage.jpg',[150,150],segmentation=False,affichage=True)
+    seam_carving('plage.jpg',[150,150],segmentation=True,affichage=True)
     # seam_carving('oiseau.jpg',[800,800],segmentation=False,affichage=True,sobel=False)
     pass
-
-im1=cv.imread('oiseau_resultat.jpg')
-im2=cv.imread('oiseau_resultat_sobel.jpg')
-# faire la diff
-diff=np.abs(im1-im2)
-# save l'image de la diff
-cv.imwrite('diff.jpg', diff)
-
-
 
 print('fin')
     
