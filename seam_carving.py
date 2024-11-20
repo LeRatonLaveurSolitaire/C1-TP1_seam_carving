@@ -13,11 +13,11 @@ def calcul_energie_image(img,sobel=False):
     else:
         sobel = cv.Sobel(img,cv.CV_64F,1,1,ksize=3)
         # Gestion des effets de bords en ajoutant une valeur arbitraire
-        val=255
+        val=500
         sobel[0,:] = val
         sobel[-1,:] = val
         sobel[:,0] = val
-        sobel[:,-1]
+        sobel[:,-1]=val
         # print(sobel[0])
         # assert False
         energie=np.abs(sobel)
@@ -35,35 +35,34 @@ def compute_optimal_seam_vertical(energy_map):
     Returns:
         seam (list): A list of row indices representing the optimal seam from top to bottom.
     """
-    # Get the dimensions of the energy map
     rows, cols = energy_map.shape
     
-    # Create a cost matrix to store the minimum cost to reach each pixel
+    # Création de la matrice de coût
     cost = np.zeros_like(energy_map)
-    cost[0] = energy_map[0]  # Initialize the first row of cost with the first row of energy
+    cost[0] = energy_map[0]  # on initialise la première ligne avec l'énergie de la première ligne
 
-    # Fill in the cost matrix
+    # Calcul du coût pour chaque pixel
     for i in range(1, rows):
         for j in range(cols):
-            # Get the minimum cost from the previous row
-            min_cost = cost[i-1, j]  # Directly above
+            # On prend le coût de l'énergie de la ligne précédente et on ajoute le minimum des trois pixels précédents
+            min_cost = cost[i-1, j]  
             if j > 0:
                 min_cost = min(min_cost, cost[i-1, j-1])  # Top-left diagonal
             if j < cols - 1:
                 min_cost = min(min_cost, cost[i-1, j+1])  # Top-right diagonal
             
-            # Update the cost for this pixel
+            # On ajoute le coût de l'énergie du pixel actuel
             cost[i, j] = energy_map[i, j] + min_cost
 
-    # Backtrack to find the optimal seam
+    # Recherche du seam optimal
     seam = []
-    # Start from the last row and find the index of the minimum value in that row
+    # On commence par le pixel de la dernière ligne avec le coût le plus faible
     min_index = np.argmin(cost[-1])
     seam.append(min_index)
 
+    # On remonte la matrice de coût pour trouver le seam optimal
     for i in range(rows - 1, 0, -1):
         j = seam[-1]
-        # Check the three possible positions from which we can come
         if j > 0 and cost[i-1, j-1] == cost[i, j] - energy_map[i, j]:
             min_index = j - 1
         elif j < cols - 1 and cost[i-1, j+1] == cost[i, j] - energy_map[i, j]:
@@ -73,15 +72,13 @@ def compute_optimal_seam_vertical(energy_map):
         
         seam.append(min_index)
 
-    # Reverse the seam to get it from top to bottom
+    # On inverse le seam pour avoir les indices des pixels du haut vers le bas
     seam.reverse()
-
+    # On convertit les indices en coordonnées (i, j)
     for i,j in enumerate(seam):
         seam[i] = [i,int(j)]
 
     return np.array(seam)
-# Example usage:
-# optimal_seam = compute_optimal_seam(energy_map)
 
 def compute_optimal_seam_horizontal(energy_map):
     """Cherche le seam optimal pour une image en transposant l'image et en utilisant la fonction compute_optimal_seam_vertical
@@ -198,12 +195,15 @@ def seam_carving(path_name='plage.jpg',taille_finale=[150,150],segmentation=Fals
     print('Traitement de l\'image {}, taille finale {}'.format(path_name,taille_finale))
     image_couleur = cv.imread(path_name)
 
+
+    # On procède à la segmentation avec la méthode K-means si demandé
     if segmentation:
+        # Nb de cluster
         nb_clusters=4
         print('Segmentation en {} cluster'.format(nb_clusters))
         image_segmenter,couleur=km.K_means_image(image_couleur,nb_clusters,20)
-        # le noir (couleur la plus foncé) est la couleur à ne pas modifier
         cv.imwrite("{}_segmentation.jpg".format(path_name[:-4]), image_segmenter)
+        # le noir (couleur la plus foncé) est la couleur à ne pas modifier pour l'image plage: à adapté pour chaque image
         # print(couleur)
         id=0
         valmin=255
@@ -222,6 +222,7 @@ def seam_carving(path_name='plage.jpg',taille_finale=[150,150],segmentation=Fals
         image_gris = cv.cvtColor(image_couleur, cv.COLOR_BGR2GRAY)
         image_energie=calcul_energie_image(image_gris,sobel)    #False permet l'utilisation du filtre Laplacien, True Sobel
 
+        # On met l'énergie maximale sur les pixels de la couleur qui correspond à notre choix de segmentation
         if segmentation:
             energie_max=np.max(image_energie)
             n,p=image_energie.shape
@@ -235,12 +236,12 @@ def seam_carving(path_name='plage.jpg',taille_finale=[150,150],segmentation=Fals
         Ligne=calcul_energie_min_ligne(image_energie)
 
         # On affiche les deux flots minimaux
-        image_aff=image_couleur.copy()
-        for pixel in Colonne[1]:
-            image_aff[pixel[0]][pixel[1]]=[0,0,255]
-        for pixel in Ligne[1]:
-            image_aff[pixel[0]][pixel[1]]=[0,0,255]
         if affichage:
+            image_aff=image_couleur.copy()
+            for pixel in Colonne[1]:
+                image_aff[pixel[0]][pixel[1]]=[0,0,255]
+            for pixel in Ligne[1]:
+                image_aff[pixel[0]][pixel[1]]=[0,0,255]
             cv.imshow('image', image_aff)
             cv.waitKey(10)
 
@@ -262,7 +263,7 @@ def seam_carving(path_name='plage.jpg',taille_finale=[150,150],segmentation=Fals
 
         
     # Affichage et enregistrement de l'image finale
-    cv.imwrite("{}_resultat_avec_seg.jpg".format(path_name[:-4]), image_couleur)
+    cv.imwrite("{}_resultat.jpg".format(path_name[:-4]), image_couleur)
     if affichage:
         cv.imshow('image', image_couleur)
         cv.waitKey(1000)
@@ -271,7 +272,16 @@ def seam_carving(path_name='plage.jpg',taille_finale=[150,150],segmentation=Fals
 if __name__ == "__main__":
     # seam_carving('plage.jpg',[150,150],segmentation=False,affichage=True)
     # seam_carving('plage.jpg',[150,150],segmentation=True,affichage=True)
-    seam_carving('oiseau.jpg',[800,800],segmentation=False,affichage=True,sobel=True)
+    # seam_carving('oiseau.jpg',[800,800],segmentation=False,affichage=True,sobel=False)
+    pass
+
+im1=cv.imread('oiseau_resultat.jpg')
+im2=cv.imread('oiseau_resultat_sobel.jpg')
+# faire la diff
+diff=np.abs(im1-im2)
+# save l'image de la diff
+cv.imwrite('diff.jpg', diff)
+
 
 
 print('fin')
